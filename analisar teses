@@ -1,0 +1,116 @@
+	//ANALISAR TESES
+	// public function analisarTeses($texto)
+	// {
+
+	// 	$MapeamentoTeses = new PalavrasTeses(); // model do banco 
+	// 	$textoMinusculo = mb_strtolower($texto, 'UTF-8');
+
+	// 	$mapeamentoTeses = $MapeamentoTeses->dbMapeamentoteses();
+
+	// 	$resultado = [];
+	// 	foreach ($mapeamentoTeses as $tese) {
+	// 		$encontrou = false;
+	// 		$termos = json_decode($tese->termos, true);
+	// 		if (is_array($termos)) {
+	// 			foreach ($termos as $palavra) {
+	// 				if (str_contains($textoMinusculo, mb_strtolower($palavra, 'UTF-8'))) {
+	// 					$encontrou = true;
+	// 					break;
+	// 				}
+	// 			}
+	// 		}
+
+	// 		$resultado[$tese->nome] = [
+	// 			'status' => $encontrou,
+	// 			'field_id' => $tese->field_id
+	// 		];
+	// 	}
+
+	// 	// ========================================================================
+	// 	// 2. REGRAS ESPECIAIS (Lógica "E" e Anulações)
+	// 	// ========================================================================
+
+	// 	// REGRA PARA A TESE 38: Incompetência da Justiça Federal
+	// 	$enderecadoJusticaFederal = str_contains($textoMinusculo, 'justiça federal') ||
+	// 		str_contains($textoMinusculo, 'juiz federal') ||
+	// 		str_contains($textoMinusculo, 'vara federal');
+
+	// 	$contraSeguradoraPrivada = str_contains($textoMinusculo, 'caixa seguradora') ||
+	// 		str_contains($textoMinusculo, 'caixa vida e previdência') ||
+	// 		str_contains($textoMinusculo, 'caixa vida e previdencia') ||
+	// 		str_contains($textoMinusculo, 'vida e previdência') ||
+	// 		str_contains($textoMinusculo, 'direito privado');
+
+	// 	$resultado['[TESE-38] - DA INCOMPETÊNCIA DA JUSTIÇA FEDERAL PARA JULGAMENTO DO FEITO'] = [
+	// 		'status' => ($enderecadoJusticaFederal && $contraSeguradoraPrivada),
+	// 		'field_id' => '28350'
+	// 	];
+
+	// 	// REGRA DE CONFLITO: Se achou Venda Casada, anula a Repetição de Indébito
+	// 	if (isset($resultado['[TESE-25] - INEXISTÊNCIA DE VENDA CASADA']) && $resultado['[TESE-25] - INEXISTÊNCIA DE VENDA CASADA']['status'] === true) {
+	// 		if (isset($resultado['[TESE-39] - DA REPETIÇÃO DO INDÉBITO'])) {
+	// 			$resultado['[TESE-39] - DA REPETIÇÃO DO INDÉBITO']['status'] = false;
+	// 		}
+	// 	}
+
+	// 	// REGRA PARA A TESE 27: Ingresso Espontâneo
+	// 	$assuntoSeguro = str_contains($textoMinusculo, 'seguro prestamista') ||
+	// 		str_contains($textoMinusculo, 'seguro de vida') ||
+	// 		str_contains($textoMinusculo, 'previdência') ||
+	// 		str_contains($textoMinusculo, 'previdencia');
+
+	// 	$empresaPoloPassivoErrada = str_contains($textoMinusculo, 'caixa seguradora') ||
+	// 		str_contains($textoMinusculo, 'caixa econômica') ||
+	// 		str_contains($textoMinusculo, 'caixa economica') ||
+	// 		str_contains($textoMinusculo, 'cef') ||
+	// 		str_contains($textoMinusculo, 'xs2') ||
+	// 		str_contains($textoMinusculo, 'banco caixa') ||
+	// 		str_contains($textoMinusculo, '02.860.003/0001-51'); // CNPJ Caixa Seguradora
+
+	// 	$empresaPoloPassivoCerta = str_contains($textoMinusculo, 'caixa vida previdência') ||
+	// 		str_contains($textoMinusculo, 'caixa vida previdencia') ||
+	// 		str_contains($textoMinusculo, 'caixa vida e previdência') ||
+	// 		str_contains($textoMinusculo, 'caixa vida e previdencia') ||
+	// 		str_contains($textoMinusculo, '03.730.204/0001'); // Início do CNPJ da Caixa Vida
+
+	// 	// A tese só ativa se achou a Errada e NÃO (!) achou a Certa
+	// 	$resultado['[TESE-27] - PRELIMINAR DE INGRESSO ESPONTÂNEO'] = [
+	// 		'status' => ($assuntoSeguro && $empresaPoloPassivoErrada && !$empresaPoloPassivoCerta),
+	// 		'field_id' => '28340'
+	// 	];
+
+	// 	// REGRA PARA A TESE 20: Ilegitimidade Passiva para Recálculo
+	// 	$contraQualquerSeguradora = str_contains($textoMinusculo, 'caixa seguradora') ||
+	// 		str_contains($textoMinusculo, 'caixa vida e previdência') ||
+	// 		str_contains($textoMinusculo, 'caixa vida e previdencia') ||
+	// 		str_contains($textoMinusculo, 'vida e previdência') ||
+	// 		str_contains($textoMinusculo, '03.730.204/0001');
+
+	// 	$pedeRevisaoEmprestimo = str_contains($textoMinusculo, 'recálculo') ||
+	// 		str_contains($textoMinusculo, 'revisão de parcelas') ||
+	// 		str_contains($textoMinusculo, 'saldo devedor') ||
+	// 		str_contains($textoMinusculo, 'juros abusivos') ||
+	// 		str_contains($textoMinusculo, 'revisão do contrato de empréstimo');
+
+	// 	$resultado['[TESE-20] - ILEGITIMIDADE PASSIVA DA CAIXA VIDA E PREVIDÊNCIA QUANTO AO PEDIDO DE RECÁLCULO'] = [
+	// 		'status' => ($contraQualquerSeguradora && $pedeRevisaoEmprestimo),
+	// 		'field_id' => '28333'
+	// 	];
+
+	// 	// ========================================================================
+	// 	// 3. CONVERSÃO E RETORNO DOS DADOS
+	// 	// ========================================================================
+
+	// 	$tesesAtivas = [];
+
+	// 	foreach ($resultado as $chaveTese => $dadosTese) {
+	// 		if (isset($dadosTese['status']) && $dadosTese['status'] === true) {
+	// 			if (preg_match('/\[TESE-(\d+)\]/', $chaveTese, $matches)) {
+	// 				// O (int) já garante que o valor seja salvo como um número inteiro puro
+	// 				$tesesAtivas[] = (int)$matches[1];
+	// 			}
+	// 		}
+	// 	}
+
+	// 	return $tesesAtivas;
+	// }
