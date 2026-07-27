@@ -1,0 +1,15 @@
+// function criarRelatorioManual($idPdfInicial, $idDoSubsidio, $idDocx, $scpjud, $valorcausa, $nomeautor, $numerocnj)
+		//	$teste1 = $this->criarRelatorioManual(5864927, 10425892, 5889618, "272285 RS", "11763,96", "PRISCILA THOEN", "5017772-19.2026.8.21.0033");
+		//	$teste2 = $this->criarRelatorioManual(5880128, 10417245, 5889424, "272447 RS", "2624,16", "VITOR LUCIO DE SENA VASQUES", "5197322-70.2026.8.21.0001");
+		//$teste3 = $this->criarRelatorioManual(5884647, 10423657, 5888168, "272483 GO", "30000,00", "MARCONDES RUFINO DA COSTA NETO", "5406685-06.2026.8.09.0010");
+		//	$teste4 = $this->criarRelatorioManual(5864913, 10425276, 5889084, "272257 RS", "23196,08", "HERMES PIVATO JUNIOR", "5006625-53.2026.8.21.0014");
+		//$teste5 = $this->criarRelatorioManual(5869838, 10417222, 5887915, "272305 SP", "11077,00", "TAINA PEREIRA MELLO", "4122000-17.2026.8.26.0100");
+		//	$teste6 = $this->criarRelatorioManual(5864850, 10418642, 5889680, "272235 PI", "45064,30", "EDSON MOREIRA DA SILVA", "0813226-13.2026.8.18.0176");
+		//	$teste7 = $this->criarRelatorioManual(5860504, 10425637, 5889401, "272163 AP", "9402,02", "GILVANDRO PEREIRA COSTA", "6050121-58.2026.8.03.0001");
+		//	$teste8 = $this->criarRelatorioManual(5864907, 10424739, 5888682, "272259 RS", "10056,11", "FABIANA SOARES DOS SANTOS POSCHI", "5010175-86.2026.8.21.0004");
+		//	$teste9 = $this->criarRelatorioManual(5864842, 10428069, 5890766, "272237 PI", "41264,10", "EDSON MOREIRA DA SILVA", "0813227-95.2026.8.18.0176");
+		//	$teste10 = $this->criarRelatorioManual(5872814, 10428748, 5891221, "272355 RJ", "10446,32", "LUCIA DALVA DA SILVA", "5005342-15.2026.4.02.5104");
+		// $teste11 = $this->criarRelatorioManual(5886150, 10428801, 5891261, "272489 GO", "30000,00", "MARCONDES RUFINO DA COSTA NETO", "5406851-38.2026.8.09.0010");
+		// $teste12 = $this->criarRelatorioManual(5876101, 10428933, 5891326, "272379 AL", "1551,64", "LARICIA REGINA AMORIM DE LIMA", "0700533-08.2026.8.02.0152");
+		// $teste13 = $this->criarRelatorioManual(5872759, 10428920, 5891317, "272331 RS", "9066,87", "JANAINA APARECIDA BELARMINO", "5003837-17.2026.8.21.0095");
+		// $teste14 = $this->criarRelatorioManual(5872767, 10429627, 5891834, "272325 RS", "12502,00", "MAGALE FERREIRA DA SILVA", "5029585-21.2026.8.21.0008");
