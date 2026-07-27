@@ -714,29 +714,34 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
-class TeseFormatada extends Model
+class PalavrasTeses extends Model
 {
     use HasFactory;
 
-    protected $table = 'teses_formatadas';
+    // Forçando o Laravel a usar este nome de tabela
+    protected $table = 'palavras_teses';
 
+    // Os campos que podem ser gravados
     protected $fillable = [
-        'numero_tese',
-        'tipo',
-        'conteudo',
+        'nome',
+        'field_id',
+        'termos',
+        'paragrafo_conclusao',
+        'empresa',
+        'tipo_tese',
     ];
 
+    protected $casts = [
+        'termos' => 'array',
+    ];
 
-    public static function numeroTesesBanco($extrairTeses)
+    public static function dbMapeamentoteses()
     {
-
-        $tesesFormatadas = DB::table('teses_formatadas')
-            ->whereIn('numero_tese', $extrairTeses)
-            ->get();
-
-        return $tesesFormatadas;
+        $mapeamentoTeses = DB::table('palavras_teses')->get();
+        return $mapeamentoTeses;
     }
 }
+
 Meu controller PalavrasTesesController é assim: 
 
     ///////////TESES//////////////////////
@@ -958,4 +963,39 @@ onde tenho que alterar para o meu arquivo passe a exibir as teses organizadas? e
 			}
 		}
 
+		Destaco que no campo "nome" está presente onumero da tese, ex: "[TESE-03] - DOS CONSECTÁRIOS LEGAIS E DOS HONORÁRIOS ADVOCATÍCIOS EM CASO DE CONDENAÇÃO". 
+		ou seja na tabela "teses_formatadas" esse numero "03" corresponde ao valor da coluna "numero_tese": 
+<?php
 
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+
+class TeseFormatada extends Model
+{
+    use HasFactory;
+
+    protected $table = 'teses_formatadas';
+
+    protected $fillable = [
+        'numero_tese',
+        'tipo',
+        'conteudo',
+    ];
+
+
+    public static function numeroTesesBanco($extrairTeses)
+    {
+
+        $tesesFormatadas = DB::table('teses_formatadas')
+            ->whereIn('numero_tese', $extrairTeses)
+            ->get();
+
+        return $tesesFormatadas;
+    }
+}
+
+		
+			
