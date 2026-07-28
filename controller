@@ -1,0 +1,101 @@
+    public function index()
+    {
+        $teses = DB::table('palavras_teses')->get();
+        return view('dossie.editar_teses', compact('teses'));
+    }
+
+    public function store(Request $request)
+    {
+       
+        $request->validate([
+            'nome' => 'required|string',
+            'paragrafo_conclusao' => 'nullable|string',
+            'empresa' => 'required|string',
+            'tipo_tese' => 'required|string',
+            'regras' => 'required|array',
+            'regras.tipo' => 'required|array',
+            'regras.termo' => 'required|array',
+        ]);
+
+      
+        $tipos = $request->input('regras.tipo', []);
+        $termos = $request->input('regras.termo', []);
+
+        $regrasFormatadas = [];
+
+        
+        foreach ($tipos as $index => $tipo) {
+            $termo = trim($termos[$index] ?? '');
+            if (!empty($termo)) {
+                $regrasFormatadas[] = [
+                    'tipo' => $tipo,
+                    'termo' => $termo
+                ];
+            }
+        }
+
+        // 4. Salva no banco
+        DB::table('palavras_teses')->insert([
+            'nome' => $request->nome,
+            'field_id' => '', 
+            'termos' => json_encode($regrasFormatadas, JSON_UNESCAPED_UNICODE),
+            'paragrafo_conclusao' => $request->paragrafo_conclusao,
+            'empresa' => $request->empresa,
+            'tipo_tese' => $request->tipo_tese,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Tese criada com sucesso!');
+    }
+
+    public function update(Request $request, $id)
+    {
+        // 1. Validação idêntica ao store
+        $request->validate([
+            'nome' => 'required|string',
+            'paragrafo_conclusao' => 'nullable|string',
+            'empresa' => 'required|string',
+            'tipo_tese' => 'required|string',
+            'regras' => 'required|array',
+            'regras.tipo' => 'required|array',
+            'regras.termo' => 'required|array',
+        ]);
+
+        // 2. Método blindado do Laravel para puxar os arrays do formulário
+        $tipos = $request->input('regras.tipo', []);
+        $termos = $request->input('regras.termo', []);
+
+        $regrasFormatadas = [];
+
+        // 3. Montamos o novo array de objetos JSON
+        foreach ($tipos as $index => $tipo) {
+            $termo = trim($termos[$index] ?? '');
+
+            if (!empty($termo)) {
+                $regrasFormatadas[] = [
+                    'tipo' => $tipo,
+                    'termo' => $termo
+                ];
+            }
+        }
+
+        // 4. Atualiza no banco
+        DB::table('palavras_teses')->where('id', $id)->update([
+            'nome' => $request->nome,
+            'field_id' => '', // Mantido conforme seu código original
+            'termos' => json_encode($regrasFormatadas, JSON_UNESCAPED_UNICODE),
+            'paragrafo_conclusao' => $request->paragrafo_conclusao,
+            'empresa' => $request->empresa,
+            'tipo_tese' => $request->tipo_tese,
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Tese atualizada com sucesso!');
+    }
+
+    public function destroy($id)
+    {
+        DB::table('palavras_teses')->where('id', $id)->delete();
+        return redirect()->back()->with('success', 'Tese excluída com sucesso!');
+    }
