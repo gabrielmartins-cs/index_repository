@@ -1,0 +1,417 @@
+@extends('layout.layout')
+
+@section("content")
+@include('layout.header', ['title' => 'Texto das teses.', 'subtitle' => 'Editar Textos das Teses'])
+
+<div class="container-fluid py-4">
+    {{-- Alertas de Sucesso --}}
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    @endif
+    <!-- {-- ALERTA DE ERROS DO LARAVEL (Adicione este bloco) --}} -->
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <h6 class="font-weight-bold"><i class="fas fa-exclamation-triangle mr-2"></i> Não foi possível salvar:</h6>
+        <ul class="mb-0 pl-3">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    @endif
+
+    {{-- Lógica para descobrir o número da próxima Tese --}}
+    @php
+    $ultimoNumero = $textosAgrupados->keys()->max() ?? 0;
+    $proximoNumero = $ultimoNumero + 1;
+    @endphp
+
+    {{-- FORMULÁRIO DE CADASTRO (CARD NO TOPO) --}}
+    <div class="card shadow-sm mb-5 border-bottom-primary">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-plus-circle mr-2"></i>Montar Nova Tese
+            </h6>
+            <span class="badge badge-primary px-3 py-2" style="font-size: 0.9rem;">
+                Tese Nº {{ $proximoNumero }}
+            </span>
+        </div>
+
+        <div class="card-body bg-light">
+            <form action="{{ route('textos.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                {{-- O número da tese é enviado de forma oculta e automática --}}
+                <input type="hidden" name="numero_tese" value="{{ $proximoNumero }}">
+
+                <div class="alert alert-info py-2 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i> Toda tese começa obrigatoriamente com um título. Adicione o restante dos textos e imagens abaixo dele.
+                </div>
+
+                {{-- BLOCO 0: TÍTULO FIXO (Não arrastável, não deletável) --}}
+                <div class="card mb-3 border-left-primary shadow-sm" style="border-width: 4px !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <label class="text-xs font-weight-bold text-uppercase mb-1 text-primary">Tipo</label>
+                                {{-- Teste: usando um input readonly em vez de hidden para garantir o envio --}}
+                                <input type="text" name="textos[0][tipo]" value="titulo" class="form-control font-weight-bold bg-light" readonly style="pointer-events: none;">
+                            </div>
+                            <div class="col-md-10">
+                                <label class="text-xs font-weight-bold text-uppercase mb-1">Conteúdo do Título</label>
+                                <input type="text" name="textos[0][conteudo]" class="form-control form-control-lg font-weight-bold" required placeholder="Digite o título principal da tese...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- CONTAINER ONDE OS DEMAIS BLOCOS VÃO APARECER (Estes são arrastáveis) --}}
+                <div id="container-blocos" class="sortable-container">
+                    <!-- Inicia vazio, pois o título já está acima -->
+                </div>
+
+                {{-- BOTÕES DE AÇÃO (ADICIONAR MAIS BLOCOS E SALVAR) --}}
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary mr-2 shadow-sm" onclick="adicionarBlocoTexto('container-blocos')">
+                            <i class="fas fa-align-left mr-1"></i> + Adicionar Texto
+                        </button>
+                        <button type="button" class="btn btn-outline-success shadow-sm" onclick="adicionarBlocoImagem('container-blocos')">
+                            <i class="fas fa-image mr-1"></i> + Adicionar Imagem
+                        </button>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary px-5 shadow">
+                            <i class="fas fa-save mr-2"></i> Salvar Tese Completa
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {{-- LISTAGEM EM CARDS AGRUPADOS COM BOTÃO DE AUDITORIA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="m-0 font-weight-bold text-secondary">
+            <i class="fas fa-layer-group mr-2"></i>Teses Formatadas Salvas
+        </h5>
+        <button class="btn btn-sm btn-info shadow-sm" data-toggle="modal" data-target="#modalAuditoriaTextos">
+            <i class="fas fa-history"></i> Ver Últimas Edições
+        </button>
+    </div>
+
+    <div class="row">
+        @foreach($textosAgrupados as $numero => $itens)
+        @php
+        $itemTitulo = $itens->firstWhere('tipo', 'titulo');
+        $textoCapa = $itemTitulo ? $itemTitulo->conteudo : 'Sem título cadastrado';
+        @endphp
+
+        <div class="col-md-12 mb-3">
+            <div class="card shadow-sm border-left-primary">
+
+                {{-- CABEÇALHO DO CARD --}}
+                <div class="card-header bg-white d-flex align-items-center py-3">
+
+                    {{-- Clicável para expandir (flex-grow-1 empurra botões para direita) --}}
+                    <h6 class="m-0 font-weight-bold text-dark d-flex align-items-center flex-grow-1"
+                        data-toggle="collapse" data-target="#collapseTese{{ $numero }}"
+                        style="cursor: pointer;">
+                        <span class="badge badge-primary px-3 py-2 mr-3">Tese {{ $numero }}</span>
+                        <span class="text-truncate d-inline-block" style="max-width: 45vw;">{{ $textoCapa }}</span>
+                        <i class="fas fa-chevron-down text-muted ml-3"></i>
+                    </h6>
+
+                    {{-- BOTÕES DE AÇÃO GERAIS DA TESE (Alinhados à direita) --}}
+                    <div class="ml-auto text-right" style="white-space: nowrap;">
+                        <button class="btn btn-sm btn-warning shadow-sm font-weight-bold mr-2" data-toggle="modal" data-target="#editTeseModal{{ $numero }}">
+                            <i class="fas fa-edit"></i> Editar Tese Completa
+                        </button>
+                        <form action="{{ route('textos.destroyTese', $numero) }}" method="POST" style="display:inline;" onsubmit="return confirm('ATENÇÃO: Excluir esta tese apagará TODOS os textos e imagens dela. Tem certeza?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-danger shadow-sm font-weight-bold">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {{-- CORPO DO CARD (Apenas Leitura / Visualização) --}}
+                <div id="collapseTese{{ $numero }}" class="collapse">
+                    <div class="card-body bg-light p-4">
+                        <div class="tese-preview" style="border: 1px solid #e3e6f0; padding: 20px; border-radius: 5px; background: #fff;">
+                            @foreach($itens as $texto)
+                            @if($texto->tipo == 'titulo')
+                            <h4 class="font-weight-bold mb-3">{{ $texto->conteudo }}</h4>
+                            @elseif($texto->tipo == 'citacao')
+                            <blockquote class="blockquote ml-4 pl-3" style="border-left: 4px solid #4e73df; font-size: 0.9rem; color: #555;">
+                                <em>{{ $texto->conteudo }}</em>
+                            </blockquote>
+                            @elseif($texto->tipo == 'imagem')
+                            <div class="text-center my-3">
+                                <img src="{{ asset($texto->conteudo) }}" alt="Imagem da Tese" class="img-fluid rounded shadow-sm" style="max-height: 250px;">
+                            </div>
+                            @else
+                            <p class="text-justify mb-2" style="font-size: 1rem;">{{ $texto->conteudo }}</p>
+                            @endif
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- MODAL DE EDIÇÃO EM LOTE PARA ESTA TESE --}}
+        <div class="modal fade" id="editTeseModal{{ $numero }}" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    <form action="{{ route('textos.updateLote', $numero) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title font-weight-bold text-primary">Editando Tese #{{ $numero }}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+
+                        <div class="modal-body bg-light">
+                            <div class="alert alert-info py-2">
+                                <i class="fas fa-info-circle mr-2"></i> Clique e segure no ícone de linhas para reordenar os blocos.
+                            </div>
+
+                            {{-- Container Arrastável do Modal --}}
+                            <div id="container-blocos-edit-{{ $numero }}" class="sortable-container">
+
+                                @foreach($itens as $index => $texto)
+                                <div class="card mb-3 shadow-sm bloco-dinamico {{ $texto->tipo == 'imagem' ? 'border-left-success' : 'border-left-secondary' }}" id="bloco_{{ $numero }}_{{ $texto->id }}">
+                                    <div class="card-body py-2">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-1 text-center">
+                                                <i class="fas fa-grip-lines text-muted handle" style="cursor: grab; font-size: 1.5rem;" title="Arraste para reordenar"></i>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="text-xs font-weight-bold text-uppercase mb-1 {{ $texto->tipo == 'imagem' ? 'text-success' : '' }}">
+                                                    Tipo
+                                                </label>
+                                                @if($texto->tipo == 'imagem')
+                                                <input type="hidden" name="textos[{{ $index }}][tipo]" value="imagem">
+                                                <div class="h5 mt-1"><span class="badge badge-success w-100 py-2">IMAGEM</span></div>
+                                                @else
+                                                <select name="textos[{{ $index }}][tipo]" class="form-control custom-select">
+                                                    <option value="normal" {{ $texto->tipo == 'normal' ? 'selected' : '' }}>Normal</option>
+                                                    <option value="titulo" {{ $texto->tipo == 'titulo' ? 'selected' : '' }}>Título</option>
+                                                    <option value="citacao" {{ $texto->tipo == 'citacao' ? 'selected' : '' }}>Citação</option>
+                                                </select>
+                                                @endif
+                                            </div>
+
+                                            <div class="col-md-8">
+                                                <label class="text-xs font-weight-bold text-uppercase mb-1">Conteúdo</label>
+                                                @if($texto->tipo == 'imagem')
+                                                {{-- Mostra imagem atual e dá opção de alterar --}}
+                                                <div class="d-flex align-items-center">
+                                                    <img src="{{ asset($texto->conteudo) }}" alt="Miniatura" class="rounded border mr-3" style="max-height: 60px;">
+                                                    <div>
+                                                        <input type="hidden" name="textos[{{ $index }}][caminho_imagem_atual]" value="{{ $texto->conteudo }}">
+                                                        <small class="text-muted d-block mb-1">Para substituir, selecione um novo arquivo:</small>
+                                                        <input type="file" name="textos[{{ $index }}][conteudo_imagem]" class="form-control-file border p-1 rounded" accept="image/*">
+                                                    </div>
+                                                </div>
+                                                @else
+                                                <textarea name="textos[{{ $index }}][conteudo]" class="form-control" rows="3" required>{{ $texto->conteudo }}</textarea>
+                                                @endif
+                                            </div>
+
+                                            {{-- BOTÃO DELETAR ACHATADO CORRIGIDO COM ESTILO INLINE FORÇADO --}}
+                                            <div class="col-md-1 d-flex justify-content-center align-items-center mt-3">
+                                                <button type="button" class="btn btn-danger rounded-circle shadow" style="width: 36px; height: 36px; padding: 0; display: inline-flex; justify-content: center; align-items: center;" onclick="removerBloco('{{ $numero }}_{{ $texto->id }}')" title="Remover Bloco">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endforeach
+
+                            </div>
+
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-outline-secondary mr-2" onclick="adicionarBlocoTexto('container-blocos-edit-{{ $numero }}')">
+                                    <i class="fas fa-align-left mr-1"></i> + Adicionar Texto
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="adicionarBlocoImagem('container-blocos-edit-{{ $numero }}')">
+                                    <i class="fas fa-image mr-1"></i> + Adicionar Imagem
+                                </button>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary px-4 shadow">
+                                <i class="fas fa-save mr-1"></i> Salvar Ordem e Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+</div>
+
+<!-- ======================================================= -->
+<!-- MODAL DE AUDITORIA (ÚLTIMAS EDIÇÕES - TEXTOS DAS TESES) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalAuditoriaTextos" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-history"></i> Histórico de Edições - Textos e Imagens</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="15%">Data / Hora</th>
+                                <th width="20%">Usuário</th>
+                                <th width="65%">Ação Realizada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($auditorias as $log)
+                            <tr>
+                                <!-- Formata a data para o padrão brasileiro -->
+                                <td>{{ \Carbon\Carbon::parse($log->created_at)->format('d/m/Y H:i:s') }}</td>
+                                <td><span class="badge badge-primary">{{ $log->nome_usuario_editor }}</span></td>
+                                <td>{{ $log->acao_edicao }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Nenhuma edição registrada até o momento.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ======================================================= -->
+@endsection
+
+
+
+@section('scripts')
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    // Inicializa o arrastar e soltar
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('.sortable-container').forEach(container => {
+            new Sortable(container, {
+                animation: 150,
+                handle: '.handle',
+                ghostClass: 'bg-white'
+            });
+        });
+    });
+
+    // Removido o 'let blocoIndex = 1;' pois causava conflito de índices com o PHP.
+    // Agora usamos uma função que gera um ID único para cada bloco novo.
+    function gerarIdUnico() {
+        return 'novo_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    }
+
+    function adicionarBlocoTexto(containerId) {
+        const container = document.getElementById(containerId);
+        const uniqueId = gerarIdUnico(); // Gera um índice seguro e exclusivo
+
+        const html = `
+        <div class="card mb-3 border-left-secondary shadow-sm bloco-dinamico" id="bloco_${uniqueId}">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-md-1 text-center">
+                        <i class="fas fa-grip-lines text-muted handle" style="cursor: grab; font-size: 1.5rem;" title="Arraste para reordenar"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="text-xs font-weight-bold text-uppercase mb-1">Tipo</label>
+                        <select name="textos[${uniqueId}][tipo]" class="form-control custom-select">
+                            <option value="normal" selected>Normal</option>
+                            <option value="citacao">Citação</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="text-xs font-weight-bold text-uppercase mb-1">Conteúdo</label>
+                        <textarea name="textos[${uniqueId}][conteudo]" class="form-control" rows="3" required placeholder="Digite o texto aqui..."></textarea>
+                    </div>
+                    <div class="col-md-1 d-flex justify-content-center align-items-center mt-3">
+                        <button type="button" class="btn btn-danger rounded-circle shadow" style="width: 36px; height: 36px; padding: 0; display: inline-flex; justify-content: center; align-items: center;" onclick="removerBloco('${uniqueId}')" title="Remover Bloco">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function adicionarBlocoImagem(containerId) {
+        const container = document.getElementById(containerId);
+        const uniqueId = gerarIdUnico(); // Gera um índice seguro e exclusivo
+
+        const html = `
+        <div class="card mb-3 border-left-success shadow-sm bloco-dinamico" id="bloco_${uniqueId}">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-md-1 text-center">
+                        <i class="fas fa-grip-lines text-muted handle" style="cursor: grab; font-size: 1.5rem;" title="Arraste para reordenar"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="text-xs font-weight-bold text-uppercase mb-1 text-success">Imagem</label>
+                        <input type="hidden" name="textos[${uniqueId}][tipo]" value="imagem">
+                        <div class="h5 mt-1"><span class="badge badge-success w-100 py-2">IMAGEM</span></div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="text-xs font-weight-bold text-uppercase mb-1">Selecione o Arquivo</label>
+                        <input type="file" name="textos[${uniqueId}][conteudo_imagem]" class="form-control-file p-2 border rounded" accept="image/*" required>
+                    </div>
+                    <div class="col-md-1 d-flex justify-content-center align-items-center mt-3">
+                        <button type="button" class="btn btn-danger rounded-circle shadow" style="width: 36px; height: 36px; padding: 0; display: inline-flex; justify-content: center; align-items: center;" onclick="removerBloco('${uniqueId}')" title="Remover Bloco">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function removerBloco(id) {
+        const bloco = document.getElementById(`bloco_${id}`);
+        if (bloco) {
+            bloco.style.opacity = '0';
+            setTimeout(() => bloco.remove(), 200);
+        }
+    }
+</script>
+@endsection
