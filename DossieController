@@ -1,0 +1,973 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\TeseFormatada;
+use App\Classes\ArcherSOAP;
+use App\Classes\ArcherRest;
+use App\Models\PalavrasTeses;
+use App\Http\Controllers\WordxDossieController;
+use App\Models\CausaPedir;
+use App\Models\Empresa;
+use App\Models\Pedido;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+
+
+class DossieController extends Controller
+{
+
+
+	//CAPTURAR DADOS DO ARCHER
+	private function DadosdoProcesso($paginaAtual, $porPagina)
+	{
+		$obArcherSOAP = new ArcherSOAP();
+		// $xml_relatorio = '<SearchReport>
+		// 	<DisplayFields>
+		// 					<DisplayField name="ID do Processo">20378</DisplayField>
+		// 					<DisplayField name="Número do Cliente">17591</DisplayField>
+		// 					<DisplayField name="Valor da Causa">20836</DisplayField>
+		// 					<DisplayField name="Autor Principal">16107</DisplayField>
+		// 					<DisplayField name="Número do processo CNJ">16072</DisplayField>
+		// 					<DisplayField name="Objeto da Ação Principal">17714</DisplayField>
+		// 					<DisplayField name="Anexar Subsídios / Averbação">18892</DisplayField>
+		// 					<DisplayField name="ID do Sistema - Peças Processuais">17681</DisplayField>
+		// 					<DisplayField name="Documento">17684</DisplayField>
+		// 					<DisplayField name="Tipo de Peça Processual">17685</DisplayField>
+		// 					<DisplayField name="Anexo do Parecer Técnico">20554</DisplayField>
+		// 					<DisplayField name="ID do Sistema - Subsídio">18156</DisplayField>
+		// 					<DisplayField name="Fato Gerador.">22432</DisplayField>
+		// 				</DisplayFields>
+		// 				<PageSize>' . $porPagina . '</PageSize>
+		// 				<IsResultLimitPercent>False</IsResultLimitPercent>
+		// 				<Criteria>
+		// 			<Keywords />
+		// 			<Filter>
+		// 			<OperatorLogic />
+		// 			<Conditions>
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Status do Processo">18580</Field>
+		// 				<Operator>Contains</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="EM ANDAMENTO">82604</Value>
+		// 					<Value name="PRÉ ARQUIVADO">82605</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Nome do Cliente">22321</Field>
+		// 				<Operator>DoesNotContain</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="CONTENCIOSO">114751</Value>
+		// 					<Value name="YELUM">114750</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Acordo Prévio foi realizado?">22905</Field>
+		// 				<Operator>DoesNotContain</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="SIM">117820</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+
+		// 				<TextFilterCondition>
+		// 				<Field name="Número do Cliente">17591</Field>
+		// 				<Operator>DoesNotContain</Operator>
+		// 				<Value />
+		// 				</TextFilterCondition>
+
+
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Nome do Cliente">22321</Field>
+		// 				<Operator>Contains</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="CVP">127971</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Status do Processo">18580</Field>
+		// 				<Operator>Contains</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="EM ANDAMENTO">82604</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Tipo de Peça Processual">17685</Field>
+		// 				<Operator>Contains</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="060 - PETIÇÃO INICIAL">69727</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Fato Gerador.">22432</Field>
+		// 				<Operator>Contains</Operator>
+		// 				<IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="VENDA POR OPORTUNIDADE">115592</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+		// 				<ValueListFilterCondition>
+		// 				<Field name="Subsidio Completo?">18899</Field>
+		// 				<Operator>Contains</Operator>
+		// 				<IsNoSelectionIncluded>True</IsNoSelectionIncluded>
+		// 				<IncludeChildren>False</IncludeChildren>
+		// 				<Values>
+		// 					<Value name="NÃO">83127</Value>
+		// 				</Values>
+		// 				</ValueListFilterCondition>
+		// 			</Conditions>
+		// 			</Filter>
+		// 			<ModuleCriteria>
+		// 			<Module name="Processos">446</Module>
+		// 			<IsKeywordModule>True</IsKeywordModule>
+		// 			<BuildoutRelationship>Union</BuildoutRelationship>
+		// 			<SortFields>
+		// 				<SortField>
+		// 				<Field name="Estado">16068</Field>
+		// 				<SortType>Ascending</SortType>
+		// 				</SortField>
+		// 				<SortField>
+		// 				<Field name="Data do Arquivamento em Juízo">18578</Field>
+		// 				<SortType>Ascending</SortType>
+		// 				</SortField>
+		// 			</SortFields>
+		// 			<Children>
+		// 				<ModuleCriteria>
+		// 				<Module name="Peças Processuais">459</Module>
+		// 				<IsKeywordModule>False</IsKeywordModule>
+		// 				<BuildoutRelationship>Intersection</BuildoutRelationship>
+		// 				<SortFields>
+		// 					<SortField>
+		// 					<Field name="ID do Sistema - Peças Processuais">17681</Field>
+		// 					<SortType>Ascending</SortType>
+		// 					</SortField>
+		// 				</SortFields>
+		// 				</ModuleCriteria>
+		// 				<ModuleCriteria>
+		// 				<Module name="Subsídio">455</Module>
+		// 				<IsKeywordModule>False</IsKeywordModule>
+		// 				<BuildoutRelationship>Intersection</BuildoutRelationship>
+		// 				<SortFields>
+		// 					<SortField>
+		// 					<Field name="Fato Gerador">19061</Field>
+		// 					<SortType>Ascending</SortType>
+		// 					</SortField>
+		// 				</SortFields>
+		// 				</ModuleCriteria>
+		// 			</Children>
+		// 			</ModuleCriteria>
+		// 		</Criteria>
+		// </SearchReport>';
+
+		// Defina a variável com o número que deseja buscar (ou receba ela dinamicamente)
+		$numeroCliente = '264487 AP';
+		// Se quiser buscar só pelo número, pode usar o operador "Contains" e passar só "264487"
+
+		$xml_relatorio = '<SearchReport>
+    <DisplayFields>
+        <DisplayField name="ID do Processo">20378</DisplayField>
+        <DisplayField name="Número do Cliente">17591</DisplayField>
+        <DisplayField name="Valor da Causa">20836</DisplayField>
+        <DisplayField name="Autor Principal">16107</DisplayField>
+        <DisplayField name="Número do processo CNJ">16072</DisplayField>
+        <DisplayField name="Objeto da Ação Principal">17714</DisplayField>
+        <DisplayField name="Anexar Subsídios / Averbação">18892</DisplayField>
+        <DisplayField name="ID do Sistema - Peças Processuais">17681</DisplayField>
+        <DisplayField name="Documento">17684</DisplayField>
+        <DisplayField name="Tipo de Peça Processual">17685</DisplayField>
+        <DisplayField name="Anexo do Parecer Técnico">20554</DisplayField>
+        <DisplayField name="ID do Sistema - Subsídio">18156</DisplayField>
+        <DisplayField name="Fato Gerador.">22432</DisplayField>
+    </DisplayFields>
+    <PageSize>' . $porPagina . '</PageSize>
+    <IsResultLimitPercent>False</IsResultLimitPercent>
+    <Criteria>
+        <Keywords />
+        <Filter>
+            <OperatorLogic />
+            <Conditions>
+                <ValueListFilterCondition>
+                    <Field name="Status do Processo">18580</Field>
+                    <Operator>Contains</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="EM ANDAMENTO">82604</Value>
+                        <Value name="PRÉ ARQUIVADO">82605</Value>
+                    </Values>
+                </ValueListFilterCondition>
+                <ValueListFilterCondition>
+                    <Field name="Nome do Cliente">22321</Field>
+                    <Operator>DoesNotContain</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="CONTENCIOSO">114751</Value>
+                        <Value name="YELUM">114750</Value>
+                    </Values>
+                </ValueListFilterCondition>
+                <ValueListFilterCondition>
+                    <Field name="Acordo Prévio foi realizado?">22905</Field>
+                    <Operator>DoesNotContain</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="SIM">117820</Value>
+                    </Values>
+                </ValueListFilterCondition>
+
+                <!-- AQUI ESTÁ O FILTRO PELO NÚMERO DO CLIENTE -->
+                <TextFilterCondition>
+                    <Field name="Número do Cliente">17591</Field>
+                    <Operator>Contains</Operator>
+                    <Value>' . $numeroCliente . '</Value>
+                </TextFilterCondition>
+                
+                <ValueListFilterCondition>
+                    <Field name="Nome do Cliente">22321</Field>
+                    <Operator>Contains</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="CVP">127971</Value>
+                    </Values>
+                </ValueListFilterCondition>
+                <ValueListFilterCondition>
+                    <Field name="Status do Processo">18580</Field>
+                    <Operator>Contains</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="EM ANDAMENTO">82604</Value>
+                    </Values>
+                </ValueListFilterCondition>
+                <ValueListFilterCondition>
+                    <Field name="Tipo de Peça Processual">17685</Field>
+                    <Operator>Contains</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="060 - PETIÇÃO INICIAL">69727</Value>
+                    </Values>
+                </ValueListFilterCondition>
+                <ValueListFilterCondition>
+                    <Field name="Fato Gerador.">22432</Field>
+                    <Operator>Contains</Operator>
+                    <IsNoSelectionIncluded>False</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="VENDA POR OPORTUNIDADE">115592</Value>
+                    </Values>
+                </ValueListFilterCondition>
+                <ValueListFilterCondition>
+                    <Field name="Subsidio Completo?">18899</Field>
+                    <Operator>Contains</Operator>
+                    <IsNoSelectionIncluded>True</IsNoSelectionIncluded>
+                    <IncludeChildren>False</IncludeChildren>
+                    <Values>
+                        <Value name="NÃO">83127</Value>
+                    </Values>
+                </ValueListFilterCondition>
+            </Conditions>
+        </Filter>
+        <ModuleCriteria>
+            <Module name="Processos">446</Module>
+            <IsKeywordModule>True</IsKeywordModule>
+            <BuildoutRelationship>Union</BuildoutRelationship>
+            <SortFields>
+                <SortField>
+                    <Field name="Estado">16068</Field>
+                    <SortType>Ascending</SortType>
+                </SortField>
+                <SortField>
+                    <Field name="Data do Arquivamento em Juízo">18578</Field>
+                    <SortType>Ascending</SortType>
+                </SortField>
+            </SortFields>
+            <Children>
+                <ModuleCriteria>
+                    <Module name="Peças Processuais">459</Module>
+                    <IsKeywordModule>False</IsKeywordModule>
+                    <BuildoutRelationship>Intersection</BuildoutRelationship>
+                    <SortFields>
+                        <SortField>
+                            <Field name="ID do Sistema - Peças Processuais">17681</Field>
+                            <SortType>Ascending</SortType>
+                        </SortField>
+                    </SortFields>
+                </ModuleCriteria>
+                <ModuleCriteria>
+                    <Module name="Subsídio">455</Module>
+                    <IsKeywordModule>False</IsKeywordModule>
+                    <BuildoutRelationship>Intersection</BuildoutRelationship>
+                    <SortFields>
+                        <SortField>
+                            <Field name="Fato Gerador">19061</Field>
+                            <SortType>Ascending</SortType>
+                        </SortField>
+                    </SortFields>
+                </ModuleCriteria>
+            </Children>
+        </ModuleCriteria>
+    </Criteria>
+</SearchReport>';
+
+
+		$retornoArcher = $obArcherSOAP->get_relatorio_paginado($xml_relatorio, $paginaAtual);
+
+		$arDados = $obArcherSOAP->extrair_dados_relatorio3($retornoArcher['xml']);
+
+		Cache::put('processos_usuario_' . auth()->id(), collect($arDados)->keyBy('20378||'), 3600);
+		// dd($arDados);
+		return [
+			'dados' => $arDados,
+			'total' => $retornoArcher['total']
+		];
+	}
+
+	// PRIMEIRA COISA QUE É EXIBIDA NA TELA
+
+	public function exibirTela(Request $request)
+	{
+
+		$porPagina = 25;
+		$paginaAtual = (int) $request->get('page', 1);
+
+		$retorno = $this->DadosdoProcesso($paginaAtual, $porPagina);
+
+
+		$leituracampos = $retorno['dados'];
+		$totalRegistros = $retorno['total'];
+
+		$msgErro = 'ERRO: Falta dado';
+
+		$dadosTratados = array_map(function ($item) use ($msgErro) {
+			return [
+				"20378||"               => $item["20378||"] ?? $msgErro,
+				"17591||"               => $item["17591||"] ?? $msgErro,
+				"20836||"               => $item["20836||"] ?? 0,
+				"16107||"               => $item["16107||"] ?? $msgErro,
+				"17714|| @displayName"  => $item["17714|| @displayName"] ?? $msgErro,
+				"17681||"               => $item["17681||"] ?? $msgErro,
+				"17684||"               => $item["17684||"] ?? $msgErro,
+				"17684||nome"           => $item["17684||nome"] ?? $msgErro,
+				"20554||"               => $item["20554||"] ?? $msgErro,
+				"20554||nome"           => $item["20554||nome"] ?? $msgErro,
+				"18156||"               => $item["18156||"] ?? $msgErro
+			];
+		}, $leituracampos);
+		// SALVA NO CACHE
+		foreach ($dadosTratados as $processo) {
+			$idProcesso = $processo['20378||'];
+			if ($idProcesso !== $msgErro) {
+				// 1 hora = 3600 segundos
+				cache()->put('dossie_proc_' . $idProcesso, $processo, 3600);
+			}
+		}
+
+		$resultado = new LengthAwarePaginator(
+			$dadosTratados,
+			$totalRegistros,
+			$porPagina,
+			$paginaAtual,
+			[
+				'path' => $request->url(),
+				'query' => $request->query()
+			]
+		);
+
+		return view('dossie.default', compact('resultado'));
+	}
+
+	//BOTÃO GERAR DOSSIÊ DA TELA
+	public function btnGerarDossie(Request $request)
+	{
+		set_time_limit(300);
+
+		$processoId = $request->input('processo_id');
+
+		// Inicia o array de rastreamento do log
+		$rastreioLog = [
+			'processo_id' => $processoId,
+			'status'      => 'iniciado',
+			'subsidio_id' => null,
+			'teses'       => [],
+			'etapas'      => []
+		];
+
+		try {
+			$bancotese = new TeseFormatada();
+			$obArcherRest = new ArcherRest();
+			$CriarWordxDossie = new WordxDossieController();
+
+			// 1) PEGA OS DADOS PROCESSADOS PELO RELATÓRIO E ARMAZENADOS NO CACHE
+			$dadosDoProcesso = cache()->get('dossie_proc_' . $processoId);
+			if (!$dadosDoProcesso) {
+				$rastreioLog['status'] = 'falha_sessao';
+				$this->gerenciarLogDossie("Falha: Sessão expirou no cache.", $rastreioLog);
+				return back()->with('error', 'Sessão expirou. Por favor, atualize a página da tabela e tente novamente.');
+			}
+
+			$jsonGerarDocumento = json_encode($dadosDoProcesso);
+			$idPdf = $dadosDoProcesso['17684||'] ?? null;
+			$idDocx = $dadosDoProcesso['20554||'] ?? null;
+			$idDoSubsidio = $dadosDoProcesso['18156||'] ?? null;
+
+			$rastreioLog['subsidio_id'] = $idDoSubsidio;
+			$rastreioLog['etapas'][] = 'dados_carregados';
+
+			// 2) USA A API DO LAZARO PARA EXTRAIR O TEXTO E PEGAR AS TESES
+			$textoPeticaoInicial = $this->extrair_texto($idPdf);
+			$extrairTeses = $this->analisarTeses($textoPeticaoInicial);
+			$rastreioLog['teses'] = $extrairTeses;
+			$rastreioLog['etapas'][] = 'ocr_teses_analisadas';
+
+			// 3) PEGA O NUMERO DAS TESES E BUSCA NO BANCO O TEXTO
+			$teseslistabanco = $bancotese->numeroTesesBanco($extrairTeses);
+
+			// 3.1) SINTESE FÁTICA (CAUSA DE PEDIR E OS PEDIDOS)
+			$sintesefatica = $this->sinteseFatica($textoPeticaoInicial);
+			$rastreioLog['etapas'][] = 'sintese_fatica_gerada';
+
+			// 4) PEGA O ARQUIVO DO ARTÉRIA, EXTRAI, E CRIA O DOCX
+			$arquivodcx = $this->getSubsidioCliente($idDocx, $idDoSubsidio);
+			$jsontextosubsidio = $this->extrairArquivo($arquivodcx, $idDoSubsidio);
+			$paragrafoconclusao = $this->obterParagrafosConclusao($extrairTeses);
+
+			$criararquivo = $CriarWordxDossie->criarWordx($idDocx, $jsontextosubsidio, $teseslistabanco, $jsonGerarDocumento, $idDoSubsidio, $sintesefatica, $paragrafoconclusao);
+			$rastreioLog['etapas'][] = 'docx_criado';
+
+			// 5) GRAVA O ARQUIVO NO AMBIENTE DE HOMOLOGAÇÃO
+			$caminho_limpo = str_replace('\\', '/', $criararquivo);
+			$nomearquivo = basename($caminho_limpo);
+			$partes = explode('automacao_dossie/' . $idDoSubsidio . '/', $caminho_limpo);
+			$caminho = 'automacao_dossie/' . $idDoSubsidio . '/' . end($partes);
+
+			$uploadarquivo = $obArcherRest->addFile($nomearquivo, $caminho);
+			$obArcherRest->updateArquivoContrato($idDoSubsidio, 28403, $uploadarquivo);
+			$rastreioLog['etapas'][] = 'upload_archer_concluido';
+
+			// 6) CRIA UM ARQUIVO DE LOG TXT NA MESMA PASTA
+			$rastreioLog['status'] = 'sucesso';
+			$this->gerenciarLogDossie("Dossiê gerado com sucesso.", $rastreioLog);
+
+			// 7) APAGA TODO O CONTEÚDO DA PASTA /automacao_dossie
+			$this->limparPastaDossieCompleto($caminho);
+
+			// 8) RETORNAR OS DADOS
+			return view('dossie.dossie', [
+				'mensagem' => "Id Criado em " . $idDoSubsidio
+			]);
+		} catch (\Exception $e) {
+			// Se qualquer etapa falhar, o processo será logado com o motivo exato.
+			$rastreioLog['status'] = 'erro';
+			$rastreioLog['mensagem_erro'] = $e->getMessage();
+			$this->gerenciarLogDossie("Erro ao gerar dossiê.", $rastreioLog);
+
+			return back()->with('error', 'Ocorreu um erro durante a geração do dossiê. Verifique os logs.');
+		}
+	}
+
+
+	public function analisarTeses($texto)
+	{
+		$MapeamentoTeses = new PalavrasTeses();
+		$limparTexto = function ($string) {
+			$mapa = [
+				'á' => 'a',
+				'à' => 'a',
+				'ã' => 'a',
+				'â' => 'a',
+				'é' => 'e',
+				'ê' => 'e',
+				'í' => 'i',
+				'ó' => 'o',
+				'ô' => 'o',
+				'õ' => 'o',
+				'ú' => 'u',
+				'ç' => 'c',
+				'Á' => 'a',
+				'À' => 'a',
+				'Ã' => 'a',
+				'Â' => 'a',
+				'É' => 'e',
+				'Ê' => 'e',
+				'Í' => 'i',
+				'Ó' => 'o',
+				'Ô' => 'o',
+				'Õ' => 'o',
+				'Ú' => 'u',
+				'Ç' => 'c'
+			];
+			$string = strtr($string, $mapa);
+			$string = mb_strtolower($string, 'UTF-8');
+			$string = preg_replace('/[^a-z0-9]/', ' ', $string);
+			$string = preg_replace('/\s+/', ' ', $string);
+			return trim($string);
+		};
+
+		$textoLimpo = $limparTexto($texto);
+
+		$mapeamentoTeses = $MapeamentoTeses->dbMapeamentoteses();
+		$resultado = [];
+
+		foreach ($mapeamentoTeses as $tese) {
+			$regras = json_decode($tese->termos, true);
+
+			$passedOr = false;
+			$passedAnd = true;
+			$passedNot = true;
+			$orCount = 0;
+
+			if (is_array($regras)) {
+				foreach ($regras as $regra) {
+					if (!is_array($regra)) {
+						$tipo = 'OU';
+						$palavra = $limparTexto($regra);
+					} else {
+						$tipo = $regra['tipo'] ?? 'OU';
+						$palavra = $limparTexto($regra['termo'] ?? '');
+					}
+
+					$contem = str_contains($textoLimpo, $palavra);
+
+					if ($tipo === 'OU') {
+						$orCount++;
+						if ($contem) {
+							$passedOr = true;
+						}
+					} elseif ($tipo === 'E') {
+						if (!$contem) {
+							$passedAnd = false;
+						}
+					} elseif ($tipo === 'NAO') {
+						if ($contem) {
+							$passedNot = false;
+						}
+					}
+				}
+			}
+
+			if ($orCount === 0) {
+				$passedOr = true;
+			}
+
+			$encontrou = ($passedOr && $passedAnd && $passedNot);
+
+			$resultado[$tese->nome] = [
+				'status'   => $encontrou,
+				'field_id' => $tese->field_id
+			];
+		}
+
+		$tesesAtivas = [];
+
+		foreach ($resultado as $chaveTese => $dadosTese) {
+			if (isset($dadosTese['status']) && $dadosTese['status'] === true) {
+				if (preg_match('/\[TESE-(\d+)\]/', $chaveTese, $matches)) {
+					$tesesAtivas[] = (int)$matches[1];
+				}
+			}
+		}
+
+		// TRAVA DA PRESCRIÇÃO: Se a TESE 22 (Completa) está ativa, remove a 20 e a 21
+		if (in_array(22, $tesesAtivas)) {
+			$tesesAtivas = array_filter($tesesAtivas, function ($id) {
+				return $id !== 20 && $id !== 21;
+			});
+			$tesesAtivas = array_values($tesesAtivas);
+		}
+
+		// TRAVA DE JURISDIÇÃO: Se tiver a TESE 1 (JEC), remove a TESE 3 (Vara Comum)
+		if (in_array(1, $tesesAtivas)) {
+			$tesesAtivas = array_filter($tesesAtivas, function ($id) {
+				return $id !== 3;
+			});
+			$tesesAtivas = array_values($tesesAtivas);
+		}
+
+		return $tesesAtivas;
+	}
+
+	//BAIXAR O ARQUIVO BASE64
+	private function getSubsidioCliente($Idarquivo, $nomeDaPasta)
+	{
+		$docsub = new ArcherRest;
+		$respostaApi = $docsub->getPecaProd($Idarquivo);
+
+		if (!is_array($respostaApi) || !isset($respostaApi['AttachmentBytes'])) {
+			return ['erro' => $respostaApi];
+		}
+
+		$base64Data = $respostaApi['AttachmentBytes'];
+		$conteudoBinario = base64_decode($base64Data);
+
+		// Define o caminho absoluto para o diretório
+		$diretorio = public_path('automacao_dossie/' . $nomeDaPasta . '/');
+
+		// Se o diretório já existir, apaga todo o conteúdo usando a facade do Laravel
+		if (File::isDirectory($diretorio)) {
+			File::deleteDirectory($diretorio);
+		}
+
+		// Cria o diretório novamente com as permissões corretas
+		File::makeDirectory($diretorio, 0755, true, true);
+
+		$nomeArquivo = 'subsidio' . rand(10000, 99999) . '.docx';
+		$caminhoCompleto = $diretorio . $nomeArquivo;
+
+		$sucesso = file_put_contents($caminhoCompleto, $conteudoBinario);
+
+		if ($sucesso !== false) {
+			return [
+				'sucesso'      => true,
+				'mensagem'     => 'Arquivo salvo com sucesso!',
+				'nome_arquivo' => $nomeArquivo,
+				'caminho'      => $caminhoCompleto,
+				'pasta'        => $nomeDaPasta
+			];
+		}
+
+		return [
+			'erro' => 'Não foi possível salvar o arquivo no servidor. Verifique as permissões da pasta.'
+		];
+	}
+
+	//OCR DO LAZARO
+	function extrair_texto($idArquivo)
+	{
+		try {
+			$url = 'http://172.32.1.229:9000/extract_text';
+			$response = \Http::withHeaders([
+				'Content-Type' => 'application/json',
+				'api-key' => '8cb99ca8-9e55-11ed-a8fc-0242ac120002'
+			])->post($url, [
+				'id' => [$idArquivo]
+			]);
+			return $response->body();
+		} catch (\Exception $e) {
+			throw new \Exception("Erro ao conectar na API: " . $e->getMessage());
+		}
+	}
+
+	function sinteseFatica($textoOriginal)
+	{
+		// Padroniza o texto (sem acentos e em minúsculo)
+		$textoSemAcento = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $textoOriginal);
+		$texto = strtolower($textoSemAcento);
+
+		$pedidosEncontrados = Pedido::buscarNoTexto($texto);
+
+		return [
+			'empresa'  => Empresa::buscarNoTexto($texto),
+			'alegacao' => CausaPedir::buscarNoTexto($texto),
+			'pedido_1' => $pedidosEncontrados[0] ?? null,
+			'pedido_2' => $pedidosEncontrados[1] ?? null
+		];
+	}
+
+
+	public function gerenciarLogDossie($mensagem, array $dadosExtras = [])
+	{
+		$diretorio = dirname(__DIR__, 3) . '/public/automacao_dossie';
+
+		if (!is_dir($diretorio) && !mkdir($diretorio, 0777, true)) {
+			\Illuminate\Support\Facades\Log::error("ERRO FATAL: Sem permissão para criar a pasta: {$diretorio}");
+			return;
+		}
+		clearstatcache();
+
+		$arquivos = glob($diretorio . '/log_dossie_*.log') ?: [];
+		usort($arquivos, function ($a, $b) {
+			return filemtime($a) <=> filemtime($b);
+		});
+
+		$arquivoMaisNovo = end($arquivos);
+		$limiteTamanho = 5 * 1024 * 1024; // 5 MB
+
+		if ($arquivoMaisNovo && filesize($arquivoMaisNovo) < $limiteTamanho) {
+			$arquivoAlvo = $arquivoMaisNovo;
+		} else {
+			$arquivoAlvo = $diretorio . '/log_dossie_' . date('d-m-Y_H-i-s') . '.log';
+			$arquivos[] = $arquivoAlvo;
+		}
+
+		$dataHora = date('Y-m-d H:i:s');
+		$extrasFormatados = empty($dadosExtras) ? '' : ' | Rastreio: ' . json_encode($dadosExtras, JSON_UNESCAPED_UNICODE);
+		$linhaLog = "[{$dataHora}] {$mensagem}{$extrasFormatados}";
+
+		@file_put_contents($arquivoAlvo, $linhaLog . PHP_EOL, FILE_APPEND);
+
+		while (count($arquivos) > 5) {
+			$arquivoParaDeletar = array_shift($arquivos);
+			@unlink($arquivoParaDeletar);
+		}
+	}
+
+
+	public function visualizarLogs()
+	{
+		// O public_path() aponta direto para a pasta "public" do Laravel
+		$diretorio = public_path('automacao_dossie');
+
+		// Verifica se a pasta existe antes de tentar ler
+		if (!is_dir($diretorio)) {
+			return response()->json(['Aviso: A pasta de logs ainda não existe. Nenhum dossiê foi gerado.']);
+		}
+
+		$arquivos = glob($diretorio . '/log_dossie_*.log') ?: [];
+
+		usort($arquivos, function ($a, $b) {
+			return filemtime($b) <=> filemtime($a);
+		});
+
+		$logs = [];
+
+		foreach ($arquivos as $arquivo) {
+			if (file_exists($arquivo)) {
+				$linhas = file($arquivo, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+				$linhasInvertidas = array_reverse($linhas);
+				$logs = array_merge($logs, $linhasInvertidas);
+			}
+		}
+
+		return response()->json($logs);
+	}
+
+	function limparPastaDossieCompleto($caminhoCompleto)
+	{
+		$pasta = dirname($caminhoCompleto);
+		$arquivoParaManter = basename($caminhoCompleto);
+		if (!is_dir($pasta)) {
+			return false;
+		}
+		$itens = scandir($pasta);
+
+		// dd($itens);
+
+		//. é esse diretorio e .. é o diretorio pai
+		foreach ($itens as $item) {
+			if ($item === '.' || $item === '..' || $item === $arquivoParaManter) {
+				continue;
+			}
+
+			//retorna assim: array:22 [0 => "." 1 => ".." 2 => "doc_17511_image7.png" 3 => "doc_29495_image4.png" 4 => "doc_46614_image8.png" 5 => "doc_47393_image14.png"....
+
+			$caminhoItem = $pasta . '/' . $item;
+			if (is_file($caminhoItem)) {
+				unlink($caminhoItem);
+			} elseif (is_dir($caminhoItem)) {
+				@rmdir($caminhoItem);
+			}
+		}
+
+		return true;
+	}
+
+	function criarRelatorioManual($idPdfInicial, $idDoSubsidio, $idDocx, $scpjud, $valorcausa, $nomeautor, $numerocnj)
+	{
+		$dadosParaJson = [
+			"17591||" => $scpjud,
+			"20836||" => $valorcausa,
+			"16107||" => $nomeautor,
+			"20378||" => $numerocnj
+		];
+
+		$jsonGerarDocumento = json_encode($dadosParaJson, JSON_UNESCAPED_UNICODE);
+
+		//objetos criados ao longo deste código;
+		$bancotese = new TeseFormatada();
+		$obArcherRest = new ArcherRest();
+		$CriarWordxDossie = new WordxDossieController();
+
+		//tempo definido tendo em vista que aguardar mais que 60s extoura; 
+		set_time_limit(180);
+
+		//2) USA A API DO LAZARO PARA EXTRAIR O TEXTO E PEGAR AS TESES
+		$textoPeticaoInicial = $this->extrair_texto($idPdfInicial);
+
+		$extrairTeses = $this->analisarTeses($textoPeticaoInicial);
+
+		//3) PEGA O NUMERO DAS TESES E BUSCA NO BANCO O TEXTO
+		$teseslistabanco = $bancotese->numeroTesesBanco($extrairTeses);
+
+		//3.1) SINTESE FÁTICA (CAUSA DE PEDIR E OS PEDIDOS)
+		$sintesefatica = $this->sinteseFatica($textoPeticaoInicial);
+
+		//4) PEGA O ARQUIVO DO ARTÉRIA, EXTRAI, E CRIA O DOCX
+		$arquivodcx =  $this->getSubsidioCliente($idDocx, $idDoSubsidio);
+		$jsontextosubsidio =  $this->extrairArquivo($arquivodcx, $idDoSubsidio);
+		$paragrafoconclusao = $this->obterParagrafosConclusao($extrairTeses);
+		$criararquivo = $CriarWordxDossie->criarWordx($idDocx, $jsontextosubsidio, $teseslistabanco, $jsonGerarDocumento, $idDoSubsidio, $sintesefatica, $paragrafoconclusao);
+	}
+
+	public function obterParagrafosConclusao(array $extrairTeses)
+	{
+		if (empty($extrairTeses)) {
+			return [];
+		}
+
+		$resultados = DB::table('palavras_teses')
+			->where(function ($query) use ($extrairTeses) {
+				foreach ($extrairTeses as $numero) {
+					$numeroLimpo = trim($numero);
+					$numeroFormatado = str_pad($numeroLimpo, 2, '0', STR_PAD_LEFT);
+					$termoBusca = "%TESE-{$numeroFormatado}%";
+
+					$query->orWhere('nome', 'LIKE', $termoBusca);
+				}
+			})
+
+			->get(['id', 'nome', 'paragrafo_conclusao']);
+
+		return $resultados
+			->filter(function ($item) {
+				return !empty(trim($item->paragrafo_conclusao));
+			})
+			->pluck('paragrafo_conclusao')
+			->toArray();
+	}
+
+	public function extrairArquivo($idarquivodocx, $nomedapasta)
+	{
+		$dadosArquivo = $idarquivodocx;
+
+		if (!isset($dadosArquivo['sucesso']) || $dadosArquivo['sucesso'] !== true) {
+			return json_encode(['sucesso' => false, 'erro' => 'Arquivo Base64 inválido.'], JSON_UNESCAPED_UNICODE);
+		}
+
+		$caminhoDocx = $dadosArquivo['caminho'];
+		$pastaUploadsFisica = public_path('automacao_dossie/' . $nomedapasta . '/');
+		$caminhoWebImagens = 'automacao_dossie/' . $nomedapasta . '/';
+
+		$zip = new \ZipArchive();
+
+		if ($zip->open($caminhoDocx) === TRUE) {
+			$mapaImagens = [];
+
+			// USAR DOMDOCUMENT
+			$xmlRels = $zip->getFromName('word/_rels/document.xml.rels');
+			if ($xmlRels) {
+				$domRels = new \DOMDocument();
+				@$domRels->loadXML($xmlRels); // O @ oculta warnings inofensivos de formatação XML
+				$relNodes = $domRels->getElementsByTagName('Relationship');
+
+				foreach ($relNodes as $relNode) {
+					$idRef = $relNode->getAttribute('Id');
+					$target = $relNode->getAttribute('Target');
+
+					if ($idRef && $target) {
+						$caminhoNoZip = urldecode($target);
+						$caminhoNoZip = str_replace('\\', '/', $caminhoNoZip);
+						$caminhoNoZip = ltrim($caminhoNoZip, '/');
+
+						if (strpos($caminhoNoZip, 'media/') === 0) {
+							$caminhoNoZip = 'word/' . $caminhoNoZip;
+						}
+						$mapaImagens[$idRef] = $caminhoNoZip;
+					}
+				}
+			}
+
+			// 2. LER COM DOMDOCUMENT E XPATH
+			$xmlDocumento = $zip->getFromName('word/document.xml');
+			$conteudoOrdenado = [];
+			$bufferTexto = "";
+
+			if ($xmlDocumento !== false) {
+				$domDoc = new \DOMDocument();
+				@$domDoc->loadXML($xmlDocumento);
+				$xpath = new \DOMXPath($domDoc);
+
+				$query = '//*[local-name()="p" or local-name()="br" or local-name()="t" or local-name()="blip" or local-name()="imagedata" or local-name()="svgBlip"]';
+				$nodes = $xpath->query($query);
+
+				if ($nodes !== false) {
+					foreach ($nodes as $node) {
+						$nomeTag = $node->localName;
+
+						if ($nomeTag === 'p' || $nomeTag === 'br') {
+							$bufferTexto .= "\n";
+						} elseif ($nomeTag === 't') {
+							$bufferTexto .= $node->nodeValue;
+						} elseif (in_array($nomeTag, ['blip', 'imagedata', 'svgBlip'])) {
+
+
+							$textoLimpo = trim(html_entity_decode($bufferTexto, ENT_QUOTES, 'UTF-8'));
+							if ($textoLimpo !== '') {
+								$conteudoOrdenado[] = [
+									'tipo'  => 'texto',
+									'valor' => $textoLimpo
+								];
+							}
+							$bufferTexto = ""; // Reseta
+
+
+							$rIdDaImagem = $node->getAttribute('r:embed');
+							if (!$rIdDaImagem) $rIdDaImagem = $node->getAttribute('r:id');
+							if (!$rIdDaImagem) $rIdDaImagem = $node->getAttribute('r:link');
+
+							// 3. Processa a extração física da imagem
+							if ($rIdDaImagem && isset($mapaImagens[$rIdDaImagem])) {
+								$caminhoInternoFoto = $mapaImagens[$rIdDaImagem];
+								$bytesImagem = $zip->getFromName($caminhoInternoFoto);
+
+								if ($bytesImagem !== false) {
+									$nomeOriginal = basename($caminhoInternoFoto);
+									$novoNomeImagem = 'doc_' . rand(10000, 99999) . '_' . $nomeOriginal;
+									$caminhoDestinoFisico = $pastaUploadsFisica . $novoNomeImagem;
+
+									file_put_contents($caminhoDestinoFisico, $bytesImagem);
+
+									$conteudoOrdenado[] = [
+										'tipo'       => 'imagem',
+										'url_render' => $caminhoWebImagens . $novoNomeImagem,
+										'nome'       => $novoNomeImagem
+									];
+								}
+							}
+						}
+					}
+				}
+
+				// Salva qualquer texto que tenha sobrado após a última imagem
+				$textoFinalLimpo = trim(html_entity_decode($bufferTexto, ENT_QUOTES, 'UTF-8'));
+				if ($textoFinalLimpo !== '') {
+					$conteudoOrdenado[] = [
+						'tipo'  => 'texto',
+						'valor' => $textoFinalLimpo
+					];
+				}
+			}
+
+			$zip->close();
+			$resultado = [
+				'sucesso' => true,
+				'blocos'  => $conteudoOrdenado
+			];
+		} else {
+			$resultado = [
+				'sucesso' => false,
+				'erro'    => 'Não foi possível abrir o arquivo DOCX.'
+			];
+		}
+
+		return json_encode($resultado, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+	}
+}
