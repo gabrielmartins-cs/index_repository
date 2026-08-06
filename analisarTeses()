@@ -1,0 +1,116 @@
+	public function analisarTeses($texto, $subsidiocliente, $datadistribuicao)
+	{
+		$limparTexto = fn($str) => str_replace('-', ' ', Str::slug($str));
+		$textoLimpo = $limparTexto($texto);
+		// Limpa o subsídio para garantir que a busca por palavras vai funcionar
+		$subsidioclienteLimpo = $limparTexto($subsidiocliente ?? '');
+		$anosDecorridos = -1;
+		$textoParaBuscaData = $subsidiocliente . ' ' . $texto;
+		if (empty($datadistribuicao) && preg_match('/(?:ajuizad[ao]|distribu[ií]d[ao]|propost[ao]|ingressad[ao]).{1,35}?(\d{2}\/\d{2}\/\d{4})/ui', $textoParaBuscaData, $mDist)) {
+			$datadistribuicao = $mDist[1];
+		}
+		if (preg_match('/(?:(?:adquirido|celebrado|firmado|assinado|contratado) em|per[ií]odo de vig[eê]ncia)[\s\n:]+(\d{2}\/\d{2}\/\d{4})/ui', $textoParaBuscaData, $matches)) {
+			$dataContratacao = $matches[1];
+
+			if ($dataContratacao && $datadistribuicao) {
+				$dtContrato = \DateTime::createFromFormat('d/m/Y', $dataContratacao);
+				$dtDistribuicao = \DateTime::createFromFormat('d/m/Y', $datadistribuicao);
+
+				if ($dtContrato && $dtDistribuicao) {
+					$diferenca = $dtContrato->diff($dtDistribuicao);
+					$anosDecorridos = $diferenca->y + ($diferenca->m / 12) + ($diferenca->d / 365);
+				}
+			}
+		}
+		$mapeamentoTeses = \App\Models\PalavrasTeses::all();
+		$resultado = [];
+
+		foreach ($mapeamentoTeses as $tese) {
+
+			// TRAVA ADICIONADA: Se a tese exige usar somente o subsídio, mas o subsídio veio vazio, 
+			// ignora o processamento desta tese e vai para a próxima.
+			if ($tese->bol_subs_cliente && empty(trim($subsidiocliente))) {
+				continue;
+			}
+
+			$regras = is_array($tese->termos) ? $tese->termos : json_decode($tese->termos, true);
+			$incluirTese = false;
+			$passouRegraE = true;
+			$passouRegraNao = true;
+			$contadorOu = 0;
+
+			// DEFINE O ALVO DA BUSCA (Ignorando o texto principal se for tese de subsídio)
+			$alvoBuscaLimpo = $tese->bol_subs_cliente ? $subsidioclienteLimpo : $textoLimpo;
+
+			if (is_array($regras)) {
+				foreach ($regras as $regra) {
+					$tipoOriginal = is_array($regra) ? ($regra['tipo'] ?? 'OU') : 'OU';
+					$tipo = str_replace(' ', '_', strtoupper(trim($tipoOriginal)));
+
+					$termoOriginal = is_array($regra) ? ($regra['termo'] ?? '') : $regra;
+
+					if ($tipo === 'TEMPO_MAIOR_QUE') {
+
+						if ($anosDecorridos >= 0) {
+							$anosAlvo = (float) $termoOriginal;
+							if ($anosDecorridos <= $anosAlvo) {
+								$passouRegraE = false;
+							}
+						} else {
+							$passouRegraE = false;
+						}
+					} else {
+						$palavra = $limparTexto($termoOriginal);
+
+						// Busca a palavra no alvo exclusivo definido ali em cima
+						$contem = str_contains($alvoBuscaLimpo, $palavra);
+
+						if ($tipo === 'OU') {
+							$contadorOu++;
+							if ($contem) {
+								$incluirTese = true;
+							}
+						} elseif ($tipo === 'E') {
+							if (!$contem) {
+								$passouRegraE = false;
+							}
+						} elseif ($tipo === 'NAO') {
+							if ($contem) {
+								$passouRegraNao = false;
+							}
+						}
+					}
+				}
+			}
+			if ($contadorOu === 0) {
+				$incluirTese = true;
+			}
+			$encontrou = ($incluirTese && $passouRegraE && $passouRegraNao);
+			$resultado[$tese->nome] = [
+				'status'      => $encontrou,
+				'numero_tese' => $tese->numero_tese
+			];
+		}
+
+		$tesesAtivas = [];
+
+		foreach ($resultado as $chaveTese => $dadosTese) {
+			if (isset($dadosTese['status']) && $dadosTese['status'] === true) {
+				if (!empty($dadosTese['numero_tese'])) {
+					$tesesAtivas[] = (int) $dadosTese['numero_tese'];
+				}
+			}
+		}
+
+		// TRAVA DA PRESCRIÇÃO
+		$grupoPrescricao = [20, 21, 22];
+		$conflito = array_values(array_intersect($tesesAtivas, $grupoPrescricao));
+		if (count($conflito) > 1) {
+			$vencedora = $conflito[0];
+			$tesesAtivas = array_diff($tesesAtivas, $grupoPrescricao);
+			$tesesAtivas[] = $vencedora;
+		}
+		$tesesAtivas = array_values($tesesAtivas);
+
+		return $tesesAtivas;
+	}
