@@ -1,0 +1,14 @@
+
+        git add 
+        database/migrations/2026_08_07_115255_criar_tabela_empresa.php
+        database/migrations/2026_08_07_115310_criar_tabela_causas_pedir.php
+        database/migrations/2026_08_07_115325_criar_tabela_auditoria_aut_dossie.php
+        database/migrations/2026_08_07_115354_criar_tabela_pedidos.php
+        database/migrations/2026_08_07_115407_criar_tabela_palavras_teses.php
+        database/migrations/2026_08_07_115420_criar_tabela_teses_formatadas.php
+
+git commit -m "Subindo arquivos dossie automacao";  
+
+git push  
+
+git push origin hom_novointegra --force    
