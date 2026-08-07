@@ -1,0 +1,93 @@
+$json = DB::table('teses_formatadas')->get()->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE); file_put_contents('C:\Users\gabriel.martins\Desktop\teste1\Integra_new\public\automacao_dossie\teses_formatadas.json', $json);
+
+$json = DB::table('palavras_teses')->get()->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE); file_put_contents('C:\Users\gabriel.martins\Desktop\teste1\Integra_new\public\automacao_dossie\palavras_teses.json', $json);
+
+$json = DB::table('palavras_chave_pedido')->get()->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+
+ Schema::getColumnListing('nome_empresa');
+
+
+$tabelas = ['empresas', 'causas_pedir', 'auditoria_aut_dossie', 'pedidos', 'palavras_teses', 'teses_formatadas']; foreach ($tabelas as $tabela) { echo "\n=== TABELA: {$tabela} ===\n"; $
+colunas = DB::select(" SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? ", [$tabela]); foreach ($colunas as $colun
+a) { $tamanho = $coluna->CHARACTER_MAXIMUM_LENGTH ? "({$coluna->CHARACTER_MAXIMUM_LENGTH})" : ""; echo "{$coluna->COLUMN_NAME} -> {$coluna->DATA_TYPE}{$tamanho} (Nullable: {$coluna->IS_NU
+LLABLE})\n"; } } 
+
+
+php artisan make:migration criar_tabelas_automacao_dossie
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // 1. Tabela empresas
+        Schema::create('empresas', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome_empresa', 255);
+            $table->text('palavras_chave_empresa');
+            $table->timestamps();
+        });
+
+        // 2. Tabela causas_pedir
+        Schema::create('causas_pedir', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome_causa', 255);
+            $table->text('palavras_chave_causa_pedido');
+            $table->timestamps();
+        });
+
+        // 3. Tabela auditoria_aut_dossie
+        Schema::create('auditoria_aut_dossie', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome_usuario_editor', 255);
+            $table->text('acao_edicao');
+            $table->timestamps();
+        });
+
+        // 4. Tabela pedidos
+        Schema::create('pedidos', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome_pedido', 255);
+            $table->text('palavras_chave_pedido');
+            $table->timestamps();
+        });
+
+        // 5. Tabela palavras_teses
+        Schema::create('palavras_teses', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome', 255);
+            $table->text('termos');
+            $table->text('paragrafo_conclusao')->nullable();
+            $table->string('empresa', 255)->nullable();
+            $table->string('tipo_tese', 255)->nullable();
+            $table->string('numero_tese', 255)->nullable();
+            $table->boolean('bol_subs_cliente');
+            $table->timestamps();
+        });
+
+        // 6. Tabela teses_formatadas
+        Schema::create('teses_formatadas', function (Blueprint $table) {
+            $table->id();
+            $table->integer('numero_tese');
+            $table->string('tipo', 255);
+            $table->text('conteudo');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('teses_formatadas');
+        Schema::dropIfExists('palavras_teses');
+        Schema::dropIfExists('pedidos');
+        Schema::dropIfExists('auditoria_aut_dossie');
+        Schema::dropIfExists('causas_pedir');
+        Schema::dropIfExists('empresas');
+    }
+};
