@@ -1,5 +1,8 @@
 
-        git add 
+
+git status
+
+git add app/Http/Controllers/WordxDossieController.php
         database/migrations/2026_08_07_115255_criar_tabela_empresa.php
         database/migrations/2026_08_07_115310_criar_tabela_causas_pedir.php
         database/migrations/2026_08_07_115325_criar_tabela_auditoria_aut_dossie.php
